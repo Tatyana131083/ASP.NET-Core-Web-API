@@ -47,7 +47,6 @@ namespace WeatherManager
             StringBuilder result = new StringBuilder();
             for (int i = 0; i < _values.Count; i++)
             {
-                //if (_values[i].DateTime.CompareTo(From) >= 0 && _values[i].DateTime.CompareTo(To) <= 0)
                 if (_values[i].DateTime >= From && _values[i].DateTime <= To)
                 {
                     result.Append( _values[i]);
