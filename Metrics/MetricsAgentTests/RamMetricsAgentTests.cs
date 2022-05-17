@@ -1,10 +1,12 @@
 ﻿using MetricsAgent.Controllers;
 using MetricsAgent.DAL.Interfaces;
-using Microsoft.AspNetCore.Mvc;
+using MetricsAgent.DAL.Models;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System;
+using System.Collections.Generic;
 using Xunit;
+using AutoMapper;
 
 namespace MetricsAgentTests
 {
@@ -13,24 +15,27 @@ namespace MetricsAgentTests
         private RamMetricsController _ramMetricsController;
         private Mock<IRamMetricsRepository> _mockIRamMetricsRepository;
         private Mock<ILogger<RamMetricsController>> _mockILogger;
+        private Mock<IMapper> _mockMapper;
 
         public RamMetricsAgentTests()
         {
             _mockIRamMetricsRepository = new Mock<IRamMetricsRepository>();
             _mockILogger = new Mock<ILogger<RamMetricsController>>();
-            _ramMetricsController = new RamMetricsController(_mockIRamMetricsRepository.Object, _mockILogger.Object);
+            _mockMapper = new Mock<IMapper>();
+            _ramMetricsController = new RamMetricsController(_mockMapper.Object, _mockIRamMetricsRepository.Object, _mockILogger.Object);
         }
 
         [Fact]
         public void GetMetricsFromAgent_ReturnOk()
         {
+            _mockIRamMetricsRepository.Setup(repository =>
+                    repository.GetByTimePeriod(It.IsAny<TimeSpan>(), It.IsAny<TimeSpan>()))
+                    .Returns(new List<RamMetric>());
 
-            TimeSpan fromTime = TimeSpan.FromSeconds(0);
-            TimeSpan toTime = TimeSpan.FromSeconds(100);
-            IActionResult result = _ramMetricsController.GetMetricsByTimePeriod(fromTime, toTime);
+            _ramMetricsController.GetMetricsByTimePeriod(TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(100));
 
-            Assert.IsAssignableFrom<IActionResult>(result);
-
+            _mockIRamMetricsRepository.Verify(repository =>
+                    repository.GetByTimePeriod(It.IsAny<TimeSpan>(), It.IsAny<TimeSpan>()), Times.AtMostOnce());
         }
     }
 }
