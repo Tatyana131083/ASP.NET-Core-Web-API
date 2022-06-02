@@ -5,8 +5,6 @@ using MetricsAgent.Models;
 using MetricsAgent.DAL.Interfaces;
 using MetricsAgent.DAL.Response;
 using System.Collections.Generic;
-using MetricsAgent.DAL.Models;
-using MetricsAgent.DAL.Requests;
 using AutoMapper;
 
 namespace MetricsAgent.Controllers
@@ -25,20 +23,7 @@ namespace MetricsAgent.Controllers
             _logger = logger;
             _repository = repository;
         }
-
-        [HttpPost("create")]
-        public IActionResult Create([FromBody] DotNetMetricCreateRequest request)
-        {
-            DotNetMetric dotNetMetric = _mapper.Map<DotNetMetric>(request);
-
-            _repository.Create(dotNetMetric);
-
-
-            if (_logger != null)
-                _logger.LogDebug("Успешно добавили новую dotNet метрику: {0}", dotNetMetric);
-
-            return Ok();
-        }
+     
 
         [HttpGet("all")]
         public IActionResult GetAll()
