@@ -1,8 +1,10 @@
-﻿using MetricsAgent.DAL.Interfaces;
+﻿using Dapper;
+using MetricsAgent.DAL.Interfaces;
 using MetricsAgent.DAL.Models;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
+
 
 namespace MetricsAgent.DAL.Repositories
 {
@@ -10,33 +12,70 @@ namespace MetricsAgent.DAL.Repositories
     {
         private const string ConnectionString = "DataSource=metrics.db;Version=3;Pooling=true;Max Pool Size=100;";
 
+        public void Create(CpuMetric item)
+        {
+            using var connection = new SQLiteConnection(ConnectionString);
+            connection.Execute("INSERT INTO cpu_metrics(value, time) VALUES(@value, @time)", new
+            {
+                value = item.Value,
+                time = item.Time
+            });
+
+        }
+
+        public void Delete(int id)
+        {
+            using var connection = new SQLiteConnection(ConnectionString);
+            connection.Execute("DELETE FROM cpu_metrics WHERE id=@id", new
+            {
+                id = id
+            });
+        }
+
+        public void Update(CpuMetric item)
+        {
+            using var connection = new SQLiteConnection(ConnectionString);
+            connection.Execute("UPDATE cpu_metrics SET value = @value, time = @time WHERE id = @id; ", new
+            {
+                value = item.Value,
+                time = item.Time,
+                id = item.Id
+            });
+        }
+
+        public IList<CpuMetric> GetAll()
+        {
+            using var connection = new SQLiteConnection(ConnectionString);
+            List<CpuMetric> metrics = connection.Query<CpuMetric>("SELECT * FROM cpu_metrics").AsList();
+            return metrics;
+        }
+
+        public CpuMetric GetById(int id)
+        {
+            using var connection = new SQLiteConnection(ConnectionString);
+            CpuMetric metric = connection.QuerySingle<CpuMetric>("SELECT * FROM cpu_metrics WHERE id=@id", new
+            {
+                id = id
+            });
+            return metric;
+        }
+
+        /// <summary>
+        /// Получить статистику по нагрузке на ЦП за период
+        /// </summary>
+        /// <param name="fromTime">Время начала периода</param>
+        /// <param name="toTime">Время окончания периода</param>
+        /// <returns></returns>
         public IList<CpuMetric> GetByTimePeriod(TimeSpan from, TimeSpan to)
         {
             using var connection = new SQLiteConnection(ConnectionString);
-            connection.Open();
-            using var cmd = new SQLiteCommand(connection);
-            double fromSec  = from.TotalSeconds;
-            double toSec = to.TotalSeconds;
-            cmd.CommandText = "SELECT * FROM cpu_metrics WHERE time >= @fromSec AND time <= @toSec";
-            cmd.Parameters.AddWithValue("@fromSec", fromSec);
-            cmd.Parameters.AddWithValue("@toSec", toSec);
-            var returnList = new List<CpuMetric>();
-            using (SQLiteDataReader reader = cmd.ExecuteReader())
+            List<CpuMetric> metrics = connection.Query<CpuMetric>("SELECT * FROM cpu_metrics WHERE time >= @fromSec AND time <= @toSec", new
             {
-                // Пока есть что читать — читаем
-                while (reader.Read())
-                {
-                    // Добавляем объект в список возврата
-                    returnList.Add(new CpuMetric
-                    {
-                        Id = reader.GetInt32(0),
-                        Value = reader.GetInt32(1),
-                        // Налету преобразуем прочитанные секунды в метку времени
-                        Time = TimeSpan.FromSeconds(reader.GetInt32(2))
-                    });
-                }
-            }
-            return returnList;
+                fromSec = from.TotalSeconds,
+                toSec = to.TotalSeconds
+            }).AsList();
+            return metrics;
+           
         }
 
     }
