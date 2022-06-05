@@ -1,6 +1,8 @@
 using AutoMapper;
+using FluentMigrator.Runner;
 using MetricsAgent.DAL.Interfaces;
 using MetricsAgent.DAL.Repositories;
+using MetricsAgent.Jobs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -8,8 +10,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
+using Quartz;
+using Quartz.Impl;
+using Quartz.Spi;
 using System;
-using System.Data.SQLite;
 
 namespace MetricsAgent
 {
@@ -25,17 +29,71 @@ namespace MetricsAgent
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddFluentMigratorCore()
+                .ConfigureRunner(rb => rb
+                .AddSQLite()
+                .WithGlobalConnectionString(Configuration.GetSection("Settings:DatabaseOptions:ConnectionString").Value)
+                .ScanIn(typeof(Startup).Assembly).For.Migrations())
+                .AddLogging(lb => lb
+                .AddFluentMigratorConsole());
+
+            services.AddSingleton<IJobFactory, SingletonJobFactory>();
+            services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
+
+            services.AddSingleton<CpuMetricJob>();
+            services.AddSingleton(new JobSchedule(
+            jobType: typeof(CpuMetricJob),
+            cronExpression: "0/5 * * * * ?")); // Запускать каждые 5 секунд
+            services.AddSingleton<RamMetricJob>();
+            services.AddSingleton(new JobSchedule(
+            jobType: typeof(RamMetricJob),
+            cronExpression: "0/5 * * * * ?"));
+            services.AddSingleton<HddMetricJob>();
+            services.AddSingleton(new JobSchedule(
+            jobType: typeof(HddMetricJob),
+            cronExpression: "0/5 * * * * ?"));
+            services.AddSingleton<NetworkMetricJob>();
+            services.AddSingleton(new JobSchedule(
+            jobType: typeof(NetworkMetricJob),
+            cronExpression: "0/5 * * * * ?"));
+            services.AddSingleton<DotnetMetricJob>();
+            services.AddSingleton(new JobSchedule(
+            jobType: typeof(DotnetMetricJob),
+            cronExpression: "0/5 * * * * ?"));
+            services.AddHostedService<QuartzHostedService>();
+
+
             var mapperConfiguration = new MapperConfiguration(mp => mp.AddProfile(new MapperProfile()));
             var mapper = mapperConfiguration.CreateMapper();
             services.AddSingleton(mapper);
 
             services.AddControllers();
-            ConfigureSqlLiteConnection(services);
-            services.AddScoped<ICpuMetricsRepository, CpuMetricsRepository>();
-            services.AddScoped<IRamMetricsRepository, RamMetricsRepository>();
-            services.AddScoped<INetworkMetricsRepository, NetworkMetricsRepository>();
-            services.AddScoped<IHddMetricsRepository, HddMetricsRepository>();
-            services.AddScoped<IDotNetMetricsRepository, DotNetMetricsRepository>();
+
+            services.AddSingleton<ICpuMetricsRepository, CpuMetricsRepository>()
+               .Configure<DatabaseOptions>(options =>
+               {
+                   Configuration.GetSection("Settings:DatabaseOptions").Bind(options);
+               });
+            services.AddSingleton<IRamMetricsRepository, RamMetricsRepository>()
+               .Configure<DatabaseOptions>(options =>
+               {
+                   Configuration.GetSection("Settings:DatabaseOptions").Bind(options);
+               });
+            services.AddSingleton<IHddMetricsRepository, HddMetricsRepository>()
+               .Configure<DatabaseOptions>(options =>
+               {
+                   Configuration.GetSection("Settings:DatabaseOptions").Bind(options);
+               });
+            services.AddSingleton<INetworkMetricsRepository, NetworkMetricsRepository>()
+               .Configure<DatabaseOptions>(options =>
+               {
+                   Configuration.GetSection("Settings:DatabaseOptions").Bind(options);
+               });
+            services.AddSingleton<IDotNetMetricsRepository,DotNetMetricsRepository>()
+               .Configure<DatabaseOptions>(options =>
+               {
+                   Configuration.GetSection("Settings:DatabaseOptions").Bind(options);
+               });
 
             services.AddControllers().AddNewtonsoftJson();
 
@@ -50,49 +108,10 @@ namespace MetricsAgent
             });
         }
 
-        private void ConfigureSqlLiteConnection(IServiceCollection services)
-        {
-            const string connectionString = "Data Source = metrics.db; Version = 3; Pooling = true; Max Pool Size = 100; ";
-            var connection = new SQLiteConnection(connectionString);
-            connection.Open();
-            PrepareSchema(connection);
-        }
-        private void PrepareSchema(SQLiteConnection connection)
-        {
-            CreateTable(connection, "cpu_metrics");
-            CreateTable(connection, "dotnet_metrics");
-            CreateTable(connection, "hdd_metrics");
-            CreateTable(connection, "network_metrics");
-            CreateTable(connection, "ram_metrics");
-        }
-
-        private void CreateTable(SQLiteConnection connection, string table)
-        {
-            using (var command = new SQLiteCommand(connection))
-            {
-                // Задаём новый текст команды для выполнения
-                // Удаляем таблицу с метриками, если она есть в базе данных
-                command.CommandText = $"DROP TABLE IF EXISTS {table}";
-
-                // Отправляем запрос в базу данных
-                command.ExecuteNonQuery();
-                command.CommandText = $"CREATE TABLE {table} (id INTEGER PRIMARY KEY, value INT, time INT)";
-                command.ExecuteNonQuery();
-                //Наполняем таблицу
-                command.CommandText = $"INSERT INTO {table} (value, time) VALUES(10, 1)";
-                command.ExecuteNonQuery();
-                command.CommandText = $"INSERT INTO {table} (value, time) VALUES(20, 5)";
-                command.ExecuteNonQuery();
-                command.CommandText = $"INSERT INTO {table} (value, time) VALUES(30, 10)";
-                command.ExecuteNonQuery();
-                command.CommandText = $"INSERT INTO {table} (value, time) VALUES(40, 15)";
-                command.ExecuteNonQuery();
-
-            }
-        }
+        
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMigrationRunner migrationRunner)
         {
             if (env.IsDevelopment())
             {
@@ -112,6 +131,8 @@ namespace MetricsAgent
             {
                 endpoints.MapControllers();
             });
+
+            migrationRunner.MigrateUp();
         }
     }
 }
