@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using MetricsAgent.DAL.Interfaces;
 using MetricsAgent.DAL.Models;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
@@ -9,7 +10,11 @@ namespace MetricsAgent.DAL.Repositories
 {
     public class NetworkMetricsRepository : INetworkMetricsRepository
     {
-        private const string ConnectionString = "DataSource=metrics.db;Version=3;Pooling=true;Max Pool Size=100;";
+        private readonly string ConnectionString;
+        public NetworkMetricsRepository(IOptions<DatabaseOptions> databaseOptions)
+        {
+            ConnectionString = databaseOptions.Value.ConnectionString;
+        }
 
         public void Create(NetworkMetric item)
         {

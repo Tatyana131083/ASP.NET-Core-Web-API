@@ -5,8 +5,6 @@ using MetricsAgent.Models;
 using MetricsAgent.DAL.Interfaces;
 using MetricsAgent.DAL.Response;
 using System.Collections.Generic;
-using MetricsAgent.DAL.Models;
-using MetricsAgent.DAL.Requests;
 using AutoMapper;
 
 namespace MetricsAgent.Controllers
@@ -26,19 +24,6 @@ namespace MetricsAgent.Controllers
             _repository = repository;
         }
 
-        [HttpPost("create")]
-        public IActionResult Create([FromBody] HddMetricCreateRequest request)
-        {
-            HddMetric hddMetric = _mapper.Map<HddMetric>(request);
-
-            _repository.Create(hddMetric);
-
-
-            if (_logger != null)
-                _logger.LogDebug("Успешно добавили новую hdd метрику: {0}", hddMetric);
-
-            return Ok();
-        }
 
         [HttpGet("all")]
         public IActionResult GetAll()

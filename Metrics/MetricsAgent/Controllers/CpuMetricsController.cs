@@ -5,8 +5,6 @@ using MetricsAgent.Models;
 using MetricsAgent.DAL.Interfaces;
 using MetricsAgent.DAL.Response;
 using System.Collections.Generic;
-using MetricsAgent.DAL.Models;
-using MetricsAgent.DAL.Requests;
 using AutoMapper;
 
 namespace MetricsAgent.Controllers
@@ -26,20 +24,7 @@ namespace MetricsAgent.Controllers
             _repository = repository;
         }
 
-        [HttpPost("create")]
-        public IActionResult Create([FromBody] CpuMetricCreateRequest request)
-        {
-            CpuMetric cpuMetric = _mapper.Map<CpuMetric>(request);
-
-            _repository.Create(cpuMetric);
-
-
-            if (_logger != null)
-                _logger.LogDebug("Успешно добавили новую cpu метрику: {0}", cpuMetric);
-
-            return Ok();
-        }
-
+        
         [HttpGet("all")]
         public IActionResult GetAll()
         {
