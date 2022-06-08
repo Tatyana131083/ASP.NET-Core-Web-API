@@ -1,7 +1,9 @@
-﻿using MetricsManager.Controllers;
-using MetricsManager.Models;
+﻿using AutoMapper;
+using MetricsManager.Controllers;
+using MetricsManager.DAL.Interfaces;
+using MetricsManager.DAL.Models;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
+using Moq;
 using Xunit;
 
 namespace MetricsManagerTests
@@ -9,31 +11,26 @@ namespace MetricsManagerTests
     public class AgentsControllerTests
     {
         private AgentsController _agentsController;
-        private AgentPool _agentPool;
+        private Mock<IAgentRepository> _mockIAgentRepository;
+        private Mock<IMapper> _mockIMapper;
 
         public AgentsControllerTests()
         {
-            _agentPool = new AgentPool();
-            _agentsController = new AgentsController(_agentPool);
+            _mockIAgentRepository = new Mock<IAgentRepository>();
+            _mockIMapper = new Mock<IMapper>();
+            _agentsController = new AgentsController(_mockIAgentRepository.Object, _mockIMapper.Object);
         }
 
         [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        [InlineData(3)]
-        public void RegisterAgentTest(int agentId)
+        [InlineData("https://localhost:44354/")]
+        [InlineData("https://localhost:44355/")]
+        [InlineData("https://localhost:44356/")]
+        public void RegisterAgent(string url)
         {
-            AgentInfo agentInfo = new AgentInfo() { AgentId = agentId, Enable = true };
-            IActionResult actionResult = _agentsController.RegisterAgent(agentInfo);
+            AgentCreateRequest agent = new AgentCreateRequest() { Url = url};
+            IActionResult actionResult = _agentsController.RegisterAgent(agent);
             Assert.IsAssignableFrom<IActionResult>(actionResult);
         }
 
-        [Fact]
-        public void GetAgentsTest()
-        {
-            IActionResult actionResult = _agentsController.GetAllAgents();
-            OkObjectResult result = Assert.IsAssignableFrom<OkObjectResult>(actionResult);
-            Assert.NotNull(result.Value as IEnumerable<AgentInfo>);
-        }
     }
 }
