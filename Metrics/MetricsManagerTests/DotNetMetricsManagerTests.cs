@@ -1,4 +1,5 @@
 ﻿using MetricsManager.Controllers;
+using MetricsManager.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -11,11 +12,13 @@ namespace MetricsManagerTests
     {
         private DotNetMetricsController _dotNetMetricsController;
         private Mock<ILogger<DotNetMetricsController>> _mockILogger;
+        private Mock<IMetricsAgentClient> _mockIMetricsAgentClient;
 
         public DotNetMetricsManagerTests()
         {
             _mockILogger = new Mock<ILogger<DotNetMetricsController>>();
-            _dotNetMetricsController = new DotNetMetricsController(_mockILogger.Object);
+            _mockIMetricsAgentClient = new Mock<IMetricsAgentClient>();
+            _dotNetMetricsController = new DotNetMetricsController(_mockILogger.Object, _mockIMetricsAgentClient.Object);
         }
 
         [Fact]

@@ -1,4 +1,5 @@
 ﻿using MetricsManager.Controllers;
+using MetricsManager.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -12,11 +13,13 @@ namespace MetricsManagerTests
     {
         private RamMetricsController _ramMetricsController;
         private Mock<ILogger<RamMetricsController>> _mockILogger;
+        private Mock<IMetricsAgentClient> _mockIMetricsAgentClient;
 
         public RamMetricsManagerTests()
         {
             _mockILogger = new Mock<ILogger<RamMetricsController>>();
-            _ramMetricsController = new RamMetricsController(_mockILogger.Object);
+            _mockIMetricsAgentClient = new Mock<IMetricsAgentClient>();
+            _ramMetricsController = new RamMetricsController(_mockILogger.Object, _mockIMetricsAgentClient.Object);
         }
 
         [Fact]
