@@ -1,5 +1,3 @@
-using AutoMapper;
-using FluentMigrator.Runner;
 using MetricsLib.Converter;
 using MetricsManager.DAL.Interfaces;
 using MetricsManager.DAL.Repositories;
@@ -14,6 +12,12 @@ using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Polly;
 using System;
+using System.IO;
+using System.Reflection;
+using AutoMapper;
+using FluentMigrator.Runner;
+
+
 
 namespace MetricsManager
 {
@@ -57,15 +61,43 @@ namespace MetricsManager
               {
                   Configuration.GetSection("Settings:DatabaseOptions").Bind(options);
               });
+
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "MetricsManager", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Version = "v1",
+                    Title = "API сервиса сбора метрик",
+                    Description = "Здесь можно поиграть с api нашего сервиса",
+                    TermsOfService = new Uri("https://example.com/terms"),
+                    Contact = new OpenApiContact
+                    {
+                        Name = "Yallina",
+                        Email = string.Empty,
+                        Url = new Uri("https://yandex.ru"),
+                    },
+                    License = new OpenApiLicense
+                    {
+                        Name = "Можно указать, под какой лицензией всё опубликовано",
+                        Url = new Uri("https://example.com/license"),
+                    }
+                });
+
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                c.IncludeXmlComments(xmlPath);
+
+                c.EnableAnnotations(); 
+
+                // поддержка TimeSpan
                 c.MapType<TimeSpan>(() => new OpenApiSchema
                 {
                     Type = "string",
                     Example = new OpenApiString("00:00:00")
                 });
             });
+
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -77,7 +109,7 @@ namespace MetricsManager
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "MetricsManager v1"));
             }
-
+           
             app.UseHttpsRedirection();
 
             app.UseRouting();

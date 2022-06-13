@@ -36,15 +36,6 @@ namespace MetricsManager.DAL.Repositories
             });
         }
 
-        public void Update(AgentInfo item)
-        {
-            using var connection = new SQLiteConnection(ConnectionString);
-            connection.Execute("UPDATE agents SET Url = @url WHERE Id=@id; ", new
-            {
-                url = item.Url,
-                id = item.Id
-            }) ;
-        }
 
         public IList<AgentInfo> GetAll()
         {
