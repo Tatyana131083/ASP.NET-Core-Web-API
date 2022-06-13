@@ -1,15 +1,18 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System;
 using Microsoft.Extensions.Logging;
 using MetricsLib.Models.Response;
 using MetricsManager.Services;
 using MetricsLib.Models.Request;
 using MetricsManager.Models;
+using Microsoft.AspNetCore.Http;
+using Swashbuckle.AspNetCore.Annotations;
+using System;
 
 namespace MetricsManager.Controllers
 {
     [Route("api/cpu")]
     [ApiController]
+    [SwaggerTag("Предоставляет работу с метриками CPU")]
     public class CpuMetricsController : Controller
     {
         private readonly ILogger<CpuMetricsController> _logger;
@@ -22,12 +25,18 @@ namespace MetricsManager.Controllers
             _metricsAgentClient = metricsAgentClient;
         }
 
-
-        [HttpGet("agent/{agentId}/from/{fromTime}/to/{toTime}")]
-        public IActionResult GetMetricsFromAgent([FromRoute] int agentId, [FromRoute] TimeSpan fromTime
-            , [FromRoute] TimeSpan toTime)
+        /// <summary>
+        /// Получение CPU метрик от агента
+        /// </summary>
+        /// <param name="agentId"></param>
+        /// <param name="fromTime"></param>
+        /// <param name="toTime"></param>
+        /// <returns></returns>
+        [HttpGet("GetCpuMetricsFromAgent")]
+        [ProducesResponseType(typeof(CpuMetricsWithAgentResponse), StatusCodes.Status200OK)]
+        public IActionResult GetMetricsFromAgent([FromQuery] int agentId, [FromQuery] TimeSpan fromTime, [FromQuery] TimeSpan toTime)
         {
-            CpuMetricsWithAgentResponse response =  _metricsAgentClient.GetCpuMetrics(new CpuMetricsRequest()
+            CpuMetricsWithAgentResponse response = _metricsAgentClient.GetCpuMetrics(new CpuMetricsRequest()
             {
                 AgentId = agentId,
                 FromTime = fromTime,
@@ -37,8 +46,15 @@ namespace MetricsManager.Controllers
             return Ok(response);
         }
 
-        [HttpGet("cluster/from/{fromTime}/to/{toTime}")]
-        public IActionResult GetMetricsFromAllCluster([FromRoute] TimeSpan fromTime, [FromRoute] TimeSpan toTime)
+        /// <summary>
+        /// Получение CPU метрик от кластера
+        /// </summary>
+        /// <param name="fromTime"></param>
+        /// <param name="toTime"></param>
+        /// <returns></returns>
+        [HttpGet("GetCpuMetricsFromCluster")]
+        [ProducesResponseType(typeof(CpuMetricsAllResponse), StatusCodes.Status200OK)]
+        public IActionResult GetMetricsFromAllCluster([FromQuery] TimeSpan fromTime, [FromQuery] TimeSpan toTime)
         {
             CpuMetricsAllResponse response = _metricsAgentClient.GetCpuMetricsFromAllAgents(new CpuMetricsAllRequest()
             {

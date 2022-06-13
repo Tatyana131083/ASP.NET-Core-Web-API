@@ -5,11 +5,14 @@ using MetricsLib.Models.Response;
 using MetricsManager.Services;
 using MetricsLib.Models.Request;
 using MetricsManager.Models;
+using Swashbuckle.AspNetCore.Annotations;
+using Microsoft.AspNetCore.Http;
 
 namespace MetricsManager.Controllers
 {
     [Route("api/dotnet")]
     [ApiController]
+    [SwaggerTag("Предоставляет работу с метриками DotNet")]
     public class DotNetMetricsController : Controller
     {
         private readonly IMetricsAgentClient _metricsAgentClient;
@@ -21,9 +24,17 @@ namespace MetricsManager.Controllers
             _metricsAgentClient = metricsAgentClient;
         }
 
-        [HttpGet("agent/{agentId}/from/{fromTime}/to/{toTime}")]
-        public IActionResult GetMetricsFromAgent([FromRoute] int agentId,
-            [FromRoute] TimeSpan fromTime, [FromRoute] TimeSpan toTime)
+        /// <summary>
+        /// Получение DotNet метрик от агента
+        /// </summary>
+        /// <param name="agentId"></param>
+        /// <param name="fromTime"></param>
+        /// <param name="toTime"></param>
+        /// <returns></returns>
+        [HttpGet("GetDotNetMetricsFromAgent")]
+        [ProducesResponseType(typeof(DotNetMetricsWithAgentResponse), StatusCodes.Status200OK)]
+        public IActionResult GetMetricsFromAgent([FromQuery] int agentId,
+            [FromQuery] TimeSpan fromTime, [FromQuery] TimeSpan toTime)
         {
             DotNetMetricsWithAgentResponse response = _metricsAgentClient.GetDotNetMetrics(new DotNetMetricsRequest()
             {
@@ -35,8 +46,15 @@ namespace MetricsManager.Controllers
             return Ok(response);
         }
 
-        [HttpGet("cluster/from/{fromTime}/to/{toTime}")]
-        public IActionResult GetMetricsFromAllCluster([FromRoute] TimeSpan fromTime, [FromRoute] TimeSpan toTime)
+        /// <summary>
+        /// Получение DotNet метрик от кластера
+        /// </summary>
+        /// <param name="fromTime"></param>
+        /// <param name="toTime"></param>
+        /// <returns></returns>
+        [HttpGet("GetDotNetMetricsFromCluster")]
+        [ProducesResponseType(typeof(DotNetMetricsAllResponse), StatusCodes.Status200OK)]
+        public IActionResult GetMetricsFromAllCluster([FromQuery] TimeSpan fromTime, [FromQuery] TimeSpan toTime)
         {
             DotNetMetricsAllResponse response = _metricsAgentClient.GetDotNetMetricsFromAllAgents(new DotNetMetricsAllRequest()
             {
